@@ -1,1 +1,1 @@
-Rest API example in with native http package
+Rest API example with native http package
