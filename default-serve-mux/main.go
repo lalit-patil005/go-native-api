@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -32,7 +31,7 @@ var products = []*Product{
 		Id:          1,
 		Sku:         "sku1",
 		Name:        "Test Product Name 1",
-		Description: " Test Product Description 2",
+		Description: " Test Product Description 1",
 		Price:       100.77,
 		Stock:       10,
 	},
@@ -90,36 +89,45 @@ func updateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	// id := strings.TrimPrefix(r.URL.Path, "/products/update/")
-	body, _ := ioutil.ReadAll(r.Body)
-	var productres ProductRes
-	productres.RawData = body
-	var productData Product
-	err := json.Unmarshal(productres.RawData, &productData)
+	id := strings.TrimPrefix(r.URL.Path, "/products/update/")
+	var requestBody map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
-		http.Error(w, "Error parsing request body", http.StatusBadRequest)
+		http.Error(w, "Error parsing request body test", http.StatusBadRequest)
 		return
 	}
-	// productID, _ := strconv.Atoi(id)
-	// var updatedProduct Product
-	// for _, product := range products {
-	// 	if product.Id == productID {
-	// 		updatedProduct = *product
-	// 		break
-	// 	}
-	// }
-	// if updatedProduct == (Product{}) {
-	// 	errorRes := ErrorResponse{
-	// 		Message: "Product not found",
-	// 		Error:   true,
-	// 	}
-	// 	w.WriteHeader(http.StatusNotFound)
-	// 	json.NewEncoder(w).Encode(errorRes)
-	// 	return
-	// }
-	// json.NewEncoder(w).Encode(filteredProduct)
-	productString := fmt.Sprintf("%+v", productData)
-	fmt.Fprintf(w, "Update product of given ID. %s", productString)
+	var needToupdateProduct Product
+	productID, _ := strconv.Atoi(id)
+	for _, product := range products {
+		if product.Id == productID {
+			needToupdateProduct = *product
+			break
+		}
+	}
+	if needToupdateProduct == (Product{}) {
+		errorRes := ErrorResponse{
+			Message: "Product not found",
+			Error:   true,
+		}
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(errorRes)
+		return
+	}
+	if price, ok := requestBody["price"].(float64); ok {
+		needToupdateProduct.Price = price
+	}
+	if name, ok := requestBody["name"].(string); ok {
+		needToupdateProduct.Name = name
+	}
+	if description, ok := requestBody["description"].(string); ok {
+		needToupdateProduct.Description = description
+	}
+	if stock, ok := requestBody["stock"].(float64); ok {
+		needToupdateProduct.Stock = int(stock)
+	}
+	json.NewEncoder(w).Encode(needToupdateProduct)
+	// productString := fmt.Sprintf("%+v", needToupdateProduct)
+	// fmt.Fprintf(w, "Update product of given ID. %s", productString)
 }
 func deleteProduct(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Delete a product")
