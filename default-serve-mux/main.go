@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -96,15 +97,33 @@ func updateProduct(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error parsing request body test", http.StatusBadRequest)
 		return
 	}
-	var needToupdateProduct Product
+	index := -1
 	productID, _ := strconv.Atoi(id)
-	for _, product := range products {
+	for i, product := range products {
 		if product.Id == productID {
-			needToupdateProduct = *product
+			index = i
 			break
 		}
 	}
-	if needToupdateProduct == (Product{}) {
+	if index != -1 {
+		if price, ok := requestBody["price"].(float64); ok {
+			products[index].Price = price
+		}
+		if name, ok := requestBody["name"].(string); ok {
+			products[index].Name = name
+		}
+		if description, ok := requestBody["description"].(string); ok {
+			products[index].Description = description
+		}
+		if stock, ok := requestBody["stock"].(float64); ok {
+			products[index].Stock = int(stock)
+		}
+		if sku, ok := requestBody["sku"].(string); ok {
+			products[index].Sku = sku
+		}
+		json.NewEncoder(w).Encode(products[index])
+		return
+	} else {
 		errorRes := ErrorResponse{
 			Message: "Product not found",
 			Error:   true,
@@ -113,27 +132,82 @@ func updateProduct(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errorRes)
 		return
 	}
-	if price, ok := requestBody["price"].(float64); ok {
-		needToupdateProduct.Price = price
-	}
-	if name, ok := requestBody["name"].(string); ok {
-		needToupdateProduct.Name = name
-	}
-	if description, ok := requestBody["description"].(string); ok {
-		needToupdateProduct.Description = description
-	}
-	if stock, ok := requestBody["stock"].(float64); ok {
-		needToupdateProduct.Stock = int(stock)
-	}
-	json.NewEncoder(w).Encode(needToupdateProduct)
 	// productString := fmt.Sprintf("%+v", needToupdateProduct)
 	// fmt.Fprintf(w, "Update product of given ID. %s", productString)
 }
 func deleteProduct(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Delete a product")
+	if r.Method != "DELETE" {
+		errorRes := ErrorResponse{
+			Message: "Method not allowed",
+			Error:   true,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(errorRes)
+		return
+	}
+	id := strings.TrimPrefix(r.URL.Path, "/products/delete/")
+	var requestBody map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
+	if err != nil {
+		http.Error(w, "Error parsing request body test", http.StatusBadRequest)
+		return
+	}
+	deleteID, _ := strconv.Atoi(id)
+	index := -1
+	for i, product := range products {
+		if product.Id == deleteID {
+			index = i
+			break
+		}
+	}
+	if index != -1 {
+		products = append(products[:index], products[index+1:]...)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(products)
+		return
+	} else {
+		errorRes := ErrorResponse{
+			Message: "Product not found",
+			Error:   true,
+		}
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(errorRes)
+		return
+	}
+	// fmt.Fprintf(w, "Delete a product")
 }
 func createProduct(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Create a product")
+	if r.Method != "POST" {
+		errorRes := ErrorResponse{
+			Message: "Method not allowed",
+			Error:   true,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(errorRes)
+		return
+	}
+	body, _ := ioutil.ReadAll(r.Body)
+	var productres ProductRes
+	productres.RawData = body
+	var newProduct *Product
+	err := json.Unmarshal(productres.RawData, &newProduct)
+	if err != nil {
+		http.Error(w, "Error parsing request body", http.StatusBadRequest)
+		return
+	}
+	highestID := 0
+	for _, product := range products {
+		if product.Id > highestID {
+			highestID = product.Id
+		}
+	}
+	nextID := highestID + 1
+	newProduct.Id = nextID
+	products = append(products, newProduct)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(newProduct)
 }
 
 func handleRequests() {
