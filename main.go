@@ -146,6 +146,7 @@ func deleteProduct(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errorRes)
 		return
 	}
+	// Get ID from request path and decode body into  interface
 	id := strings.TrimPrefix(r.URL.Path, "/products/delete/")
 	var requestBody map[string]interface{}
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
@@ -178,6 +179,7 @@ func deleteProduct(w http.ResponseWriter, r *http.Request) {
 	// fmt.Fprintf(w, "Delete a product")
 }
 func createProduct(w http.ResponseWriter, r *http.Request) {
+	// only POST method is allowed
 	if r.Method != "POST" {
 		errorRes := ErrorResponse{
 			Message: "Method not allowed",
@@ -188,6 +190,7 @@ func createProduct(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errorRes)
 		return
 	}
+	// Parse body and decode into Product
 	body, _ := ioutil.ReadAll(r.Body)
 	var productres ProductRes
 	productres.RawData = body
@@ -197,6 +200,7 @@ func createProduct(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error parsing request body", http.StatusBadRequest)
 		return
 	}
+	// Find highest ID in slice
 	highestID := 0
 	for _, product := range products {
 		if product.Id > highestID {
