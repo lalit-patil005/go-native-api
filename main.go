@@ -211,6 +211,8 @@ func createProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleRequests() {
+
+	// routing using DefaultServeMux
 	http.HandleFunc("/products/fetch/", getProduct)
 	http.HandleFunc("/products/update/", updateProduct)
 	http.HandleFunc("/products/delete/", deleteProduct)
@@ -218,9 +220,18 @@ func handleRequests() {
 	http.HandleFunc("/products", allProducts)
 	http.HandleFunc("/", homePage)
 	log.Fatal(http.ListenAndServe("localhost:3000", nil))
+
+	// routing using NewServeMux
+	// mux := http.NewServeMux()
+	// mux.HandleFunc("/products/fetch/", getProduct)
+	// mux.HandleFunc("/products/update/", updateProduct)
+	// mux.HandleFunc("/products/delete/", deleteProduct)
+	// mux.HandleFunc("/products/create/", createProduct)
+	// mux.HandleFunc("/products", allProducts)
+	// mux.HandleFunc("/", homePage)
+	// log.Fatal(http.ListenAndServe("localhost:3000", mux))
 }
 
 func main() {
-	fmt.Println("go apis with DefaultServeMux")
 	handleRequests()
 }
